@@ -4,5 +4,6 @@ scipy
 matplotlib
 seaborn
 scikit-learn
-pyarrow
+pyarrow==12.0.1
 fastparquet
+openpyxl

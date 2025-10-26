@@ -4,6 +4,7 @@ __pycache__/
 
 # Ignore dataset folder
 data/
+outputs/
 
 # Ignore Jupyter notebook checkpoints
 .ipynb_checkpoints/
