@@ -7,3 +7,4 @@ scikit-learn
 pyarrow==12.0.1
 fastparquet
 openpyxl
+ipython>=8.0.0
