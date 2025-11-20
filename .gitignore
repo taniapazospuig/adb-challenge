@@ -8,3 +8,7 @@ clean/
 
 # Ignore Jupyter notebook checkpoints
 .ipynb_checkpoints/
+
+# Ignore DuckDB database file
+*.duckdb
+*.duckdb.wal
