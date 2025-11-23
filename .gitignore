@@ -12,3 +12,7 @@ clean/
 # Ignore DuckDB database file
 *.duckdb
 *.duckdb.wal
+
+# Ignore DS store
+.DS_Store
+
