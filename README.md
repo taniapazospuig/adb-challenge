@@ -41,21 +41,9 @@ Decision-support toolkit for identifying Barcelona census sections most exposed 
 
 ## Visualization workflow (`vulnerabilityMap.ipynb`)
 
-1. **Daily focus date** – `target_date` defaults to **2024‑07‑15**; change it to inspect any day in the dataset.
-2. **Hazard maps** – Separate Folium layers for rainfall (Blues palette) and heatwave (OrRd palette) vulnerability with tooltips showing census section, district, neighborhood, and score.
-3. **Combined comparison** – Dual-layer map that overlays both hazards and shares colorbars.
-4. **Infrastructure overlays** – Optional maps coloring sections by `vuln_infrastructure` or `leaks_per_1000_meters`.
-5. **Daily stats** – `describe()`, top/bottom 5 sections per hazard, and cross-hazard correlation.
-6. **Global aggregated maps** – Scores aggregated across 2023‑01‑04 to 2024‑12‑31 (mean, 95th percentile, max) for each hazard:
-   | Metric | Interpretation |
-   | --- | --- |
-   | `RAIN_MEAN` | Chronic rainfall stress. |
-   | `RAIN_P95` | Recurring high-end rainfall stress. |
-   | `RAIN_MAX` | Worst recorded rainfall stress. |
-   | `HEAT_MEAN` | Chronic heat stress. |
-   | `HEAT_P95` | Recurring high-end heat stress. |
-   | `HEAT_MAX` | Worst recorded heat stress. |
-7. **Aggregated stats** – Summary tables listing distribution metrics plus top/bottom sections for all six global maps.
+1. **Mean hazard maps** – Both rainfall (Blues palette) and heatwave (OrRd palette) maps render the *mean* vulnerability score across the entire 2023‑01‑04–2024‑12‑31 period, with tooltips showing census section, district, neighborhood, and mean score.
+2. **Combined comparison** – Dual-layer Folium map overlays the mean rainfall and heatwave layers; toggle visibility via the layer control while both colorbars remain visible.
+3. **Mean stats** – Descriptive stats plus top 5 most vulnerable sections are printed for both mean hazard layers to mirror the map view.
 
 ---
 
@@ -67,9 +55,9 @@ Decision-support toolkit for identifying Barcelona census sections most exposed 
    source .venv/bin/activate
    pip install -r requirements.txt
    ```
-2. **Run cleaning/EDA (optional)** – Execute `cleaningEDA.ipynb` if upstream feeds changed; use `correlationAnalysis.ipynb` for exploratory diagnostics.
-3. **Rebuild scores** – Run `vulnerabilityScore.ipynb` to regenerate `clean/vulnerability_daily.parquet`.
-4. **Explore maps** – Open `vulnerabilityMap.ipynb`, adjust `target_date`, and run all cells to view Folium maps inline.
+2. **Run cleaning/EDA** – Execute `cleaningEDA.ipynb`; use `correlationAnalysis.ipynb` for exploratory diagnostics.
+3. **Build scores** – Run `vulnerabilityScore.ipynb` to generate `clean/vulnerability_daily.parquet`.
+4. **Explore mean maps** – Open `vulnerabilityMap.ipynb` and run all cells to display the mean hazard maps, combined comparison, infrastructure overlays, and summary statistics inline.
 
 ---
 
