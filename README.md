@@ -1,4 +1,4 @@
-# Barcelona Water & Climate Vulnerability Assessment
+# Water and Urban Resilience: Impact of Heatwaves and Intense Rainfall in Barcelona
 
 A data-driven tool for identifying Barcelona census sections most vulnerable to heavy rainfall and heatwaves. The system integrates weather data, water infrastructure metrics, and socioeconomic indicators to generate daily vulnerability scores and interactive maps.
 
