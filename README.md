@@ -1,70 +1,124 @@
-# Barcelona Water & Climate Vulnerability Explorer
+# Barcelona Water & Climate Vulnerability Assessment
 
-Decision-support toolkit for identifying Barcelona census sections most exposed to heavy rainfall or heatwaves. It blends network leak metrics, consumption, socioeconomic data, and weather signals into daily vulnerability scores, then wraps them in interactive Folium maps plus supporting EDA notebooks.
+A data-driven tool for identifying Barcelona census sections most vulnerable to heavy rainfall and heatwaves. The system integrates weather data, water infrastructure metrics, and socioeconomic indicators to generate daily vulnerability scores and interactive maps.
 
----
+## Overview
 
-## Repository structure
+This project calculates vulnerability scores for each of Barcelona's 1,068 census sections on a daily basis from January 2023 to December 2024. The scores combine three key dimensions:
 
-| Item | Description |
-| --- | --- |
-| `data/BarcelonaCiutat_SeccionsCensals.csv` | Polygon geometry (WKT, EPSG:4326) plus census metadata used to draw maps. |
-| `clean/vulnerability_daily.parquet` | Master daily table with rainfall and heatwave vulnerability scores per census section from 2023‑01‑04 to 2024‑12‑31. |
-| `cleaningEDA.ipynb` | Data sanity checks and preprocessing diagnostics (missing values, outlier distributions, schema validation) executed before scoring. |
-| `correlationAnalysis.ipynb` | Exploratory notebook quantifying relationships between consumption, leaks, weather variables, and vulnerability components. |
-| `vulnerabilityScore.ipynb` | End-to-end feature engineering and scoring pipeline. Builds component indices, weights them, and writes `clean/vulnerability_daily.parquet`. |
-| `vulnerabilityMap.ipynb` | Loads geometry + scores, renders daily and aggregated Folium maps, adds infrastructure overlays, and prints descriptive statistics. |
-| `README.md` | Project documentation (this file). |
+- **Socioeconomic vulnerability**: Based on the IST (Territorial Socioeconomic Index)
+- **Infrastructure vulnerability**: Based on water leak frequency, leak density, and consumption patterns
+- **Weather vulnerability**: Based on temperature, precipitation, and humidity anomalies relative to local climatology
 
----
+Two separate vulnerability indices are computed:
+- **Rainfall vulnerability**: For intense precipitation events
+- **Heatwave vulnerability**: For extreme heat events
 
-## Data & feature engineering (`vulnerabilityScore.ipynb`)
+## Project Structure
 
-1. **Inputs** – Weather observations, consumption logs, leak incidents, IST socioeconomic index, and census geometry are merged into `gdf_daily` (one row per section per day).
-2. **Component scores**  
-   * `vuln_socio`: inverse-normalized IST percentile.  
-   * `vuln_infrastructure`: composites of leak frequency, leaks per 1 000 m, daily incidents, and consumption per meter.  
-   * Weather stresses: precipitation anomaly (`vuln_precip`), humidity anomaly, temperature anomaly, and low-humidity exposure—each standardized vs. section/month climatology.
-3. **Final indices (0–100 scale)**  
-   * Rainfall score = 0.25 socio + 0.35 infrastructure + 0.40 weather (70 % precip, 30 % humidity).  
-   * Heatwave score = 0.35 socio + 0.20 infrastructure + 0.45 weather (70 % temperature, 30 % low humidity).
-4. **Outputs** – Writes `clean/vulnerability_daily.parquet` with all intermediate components and final hazard scores.
+```
+adb-challenge/
+├── data/                          # Raw input data
+│   ├── BarcelonaCiutat_SeccionsCensals.csv
+│   ├── consum_avisos_missatges_v2.parquet
+│   ├── consum_telelectura_v2.parquet
+│   ├── Dades_meteorològiques_diàries_de_la_XEMA_20251119.csv
+│   └── ist_per_seccio_censal.csv
+│
+├── cleaningEDA.ipynb              # Data cleaning and preprocessing pipeline
+├── correlationAnalysis.ipynb      # Statistical analysis for variable selection
+├── vulnerabilityScore.ipynb       # Main scoring pipeline
+├── vulnerabilityMap.ipynb         # Interactive map visualization
+├── vulnerability_score_config.json # Weather variable weights configuration
+├── split_parquet.py               # Utility script for splitting large parquet files
+├── requirements.txt               # Python dependencies
+├── README.md                      # Project documentation
+└── .gitignore                     # Git ignore rules
+```
 
----
+**Key Files:**
+- **Notebooks**: Run in sequence: `cleaningEDA.ipynb` → `correlationAnalysis.ipynb` → `vulnerabilityScore.ipynb` → `vulnerabilityMap.ipynb`
+- **Data directory**: Contains raw input files. Processed data and split files are generated automatically by the notebooks.
+- **Output**: After running the notebooks, `clean/vulnerability_daily.parquet` will contain the final dataset with daily vulnerability scores (777,504 rows covering 2023-01-04 to 2024-12-31).
 
-## Supporting analysis notebooks
+## Data Sources
 
-* **`cleaningEDA.ipynb`** – Verifies raw feeds (value ranges, duplicates, spatial joins), documents data cleaning steps, and exports sanitized tables consumed by the scoring pipeline.
-* **`correlationAnalysis.ipynb`** – Investigates pairwise and multi-factor relationships (e.g., leaks vs. IST, humidity vs. consumption), guiding the weight choices and sanity-checking the final indices.
+- **Weather stations**: Three active stations (D5, X4, X8) providing daily meteorological measurements (Generalitat de Catalunya)
+- **Water consumption**: Daily meter readings (Aigües de Barcelona)
+- **Leak incidents**: Water leak reports (Aigües de Barcelona)
+- **Socioeconomic index**: 2022 IST index by census section (Idescat)
+- **Census geometry**: 2022 Polygon boundaries for Barcelona's 1,068 census sections (OpenDataBCN)
 
----
+## Vulnerability Scoring Methodology
 
-## Visualization workflow (`vulnerabilityMap.ipynb`)
+### Component Scores
 
-1. **Mean hazard maps** – Both rainfall (Blues palette) and heatwave (OrRd palette) maps render the *mean* vulnerability score across the entire 2023‑01‑04–2024‑12‑31 period, with tooltips showing census section, district, neighborhood, and mean score.
-2. **Combined comparison** – Dual-layer Folium map overlays the mean rainfall and heatwave layers; toggle visibility via the layer control while both colorbars remain visible.
-3. **Mean stats** – Descriptive stats plus top 5 most vulnerable sections are printed for both mean hazard layers to mirror the map view.
+1. **Socioeconomic component** (`vuln_socioeconomic`): Inverse-normalized IST percentile (higher IST = lower vulnerability). Static across time periods.
 
----
+2. **Infrastructure component**: Varies by hazard type:
+   - **Heatwave infrastructure** (`vuln_infrastructure_heatwave`): 
+     - 60% consumption surge (composite of consumption surge, contracts surge, and consumption intensity)
+     - 40% baseline leak frequency (composite of leak frequency, leak density, and incident metrics)
+   - **Rainfall infrastructure** (`vuln_infrastructure_rainfall`):
+     - 60% leak response to rainfall (composite of leak frequency, contracts, and intensity during rain events)
+     - 40% baseline leak frequency
 
-## Getting started
+3. **Weather component**: Data-driven variables selected through correlation analysis:
+   - **Heatwave weather** (`vuln_weather_heatwave`): Weighted combination of 6 variables (average/min/max temperatures, evapotranspiration, solar radiation)
+   - **Rainfall weather** (`vuln_weather_rainfall`): Weighted combination of 5 precipitation variables (30-min max, 1-hour max, 1-minute max, daily total, 8-hour accumulation)
+   - Variables are normalized and weighted according to `vulnerability_score_config.json`, derived from correlation analysis with consumption and leak patterns
 
-1. **Environment**
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
-2. **Run cleaning/EDA** – Execute `cleaningEDA.ipynb`; use `correlationAnalysis.ipynb` for exploratory diagnostics.
-3. **Build scores** – Run `vulnerabilityScore.ipynb` to generate `clean/vulnerability_daily.parquet`.
-4. **Explore mean maps** – Open `vulnerabilityMap.ipynb` and run all cells to display the mean hazard maps, combined comparison, infrastructure overlays, and summary statistics inline.
+### Final Vulnerability Indices
 
----
+Both vulnerability scores use the same component weights:
 
-## Notes & assumptions
+**Rainfall Vulnerability** (0-1 scale):
+- 60% weather + 25% infrastructure + 15% socioeconomic
 
-* Geometry and vulnerability tables share `SECCIO_CENSAL` (`080193` + district + section code).
-* All spatial data are treated as EPSG:4326.
-* Missing scores render in gray on Folium maps.
-* Extend `metric_configs` to visualize additional aggregated indicators.
+**Heatwave Vulnerability** (0-1 scale):
+- 60% weather + 25% infrastructure + 15% socioeconomic
 
+The infrastructure component differs between the two (as described above), while weather and socioeconomic components use the same calculation method but with hazard-specific variables and metrics.
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.11+
+- Required packages listed in `requirements.txt`
+
+### Installation
+
+```bash
+# Create virtual environment
+python3 -m venv adb
+source adb/bin/activate  # On Windows: adb\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Usage
+
+1. **Data cleaning**: Run `cleaningEDA.ipynb` to process raw data and generate cleaned datasets
+2. **Correlation analysis**: Run `correlationAnalysis.ipynb` to understand variable relationships (optional)
+3. **Generate scores**: Run `vulnerabilityScore.ipynb` to calculate daily vulnerability scores
+4. **Visualize**: Run `vulnerabilityMap.ipynb` to create interactive maps
+
+## Output
+
+The main output is `clean/vulnerability_daily.parquet`, containing:
+- Daily vulnerability scores for rainfall and heatwaves per census section
+- All intermediate component scores
+- Date range: 2023-01-04 to 2024-12-31
+- 777,504 total records (1,068 sections × ~728 days)
+
+Maps use median aggregation by default (representing typical baseline vulnerability), with mean aggregation available as an alternative to include extreme event impacts.
+
+## Technical Notes
+
+- Census sections are identified by `SECCIO_CENSAL` (format: `080193` + district code + section code)
+- All spatial data uses EPSG:4326 (WGS84) coordinate system
+- Weather stations are assigned to census sections via nearest-neighbor spatial join
+- Missing scores appear in gray on maps (preserved to indicate data availability)
+- Large datasets are processed in chunks for memory efficiency
