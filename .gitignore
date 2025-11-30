@@ -16,3 +16,7 @@ clean/
 # Ignore DS store
 .DS_Store
 
+# Ignore query files
+run_sql.py 
+queries.sql
+
